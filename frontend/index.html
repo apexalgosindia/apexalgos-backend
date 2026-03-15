@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Apex Algos · PNL Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg0:#0a0d12; --bg1:#0f1318; --bg2:#141920; --bg3:#1a2130;
+    --border:#1e2a3a; --border2:#253040;
+    --text:#e2e8f0; --text2:#8899aa; --text3:#4a5a6a;
+    --green:#00d68f; --green2:#003d28; --green3:#00ff9d;
+    --red:#ff4d6d; --red2:#3d0012; --red3:#ff8099;
+    --amber:#f59e0b; --amber2:#2d1a00;
+    --blue:#3b82f6; --blue2:#0d1f40;
+    --accent:#00d68f;
+    --font-mono:'JetBrains Mono',monospace;
+    --font-sans:'DM Sans',sans-serif;
+    --r:8px; --r2:12px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg0);color:var(--text);font-family:var(--font-sans);min-height:100vh;font-size:14px;}
+  a{color:var(--accent);text-decoration:none;}
+
+  /* ── AUTH ───────────────────────────────────────────────────────── */
+  #auth-page{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;
+    background:radial-gradient(ellipse at 20% 50%,#0d2030 0%,transparent 60%),
+               radial-gradient(ellipse at 80% 20%,#0d2a1a 0%,transparent 50%),var(--bg0);}
+  .auth-card{width:100%;max-width:420px;}
+  .auth-logo{font-family:var(--font-mono);font-size:22px;font-weight:700;color:var(--green3);
+    letter-spacing:-1px;margin-bottom:8px;display:flex;align-items:center;gap:10px;}
+  .auth-logo::before{content:'▲';color:var(--green);font-size:16px;}
+  .auth-sub{color:var(--text2);font-size:13px;margin-bottom:32px;}
+  .auth-tabs{display:flex;gap:4px;margin-bottom:24px;background:var(--bg2);padding:4px;border-radius:var(--r);}
+  .auth-tab{flex:1;padding:8px;text-align:center;cursor:pointer;border-radius:6px;font-size:13px;
+    color:var(--text2);transition:all .2s;}
+  .auth-tab.active{background:var(--bg3);color:var(--text);font-weight:500;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:12px;color:var(--text2);margin-bottom:6px;letter-spacing:.5px;text-transform:uppercase;}
+  .field input{width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);
+    padding:11px 14px;color:var(--text);font-size:14px;font-family:var(--font-sans);outline:none;transition:border .2s;}
+  .field input:focus{border-color:var(--accent);}
+  .btn{width:100%;padding:12px;background:var(--green);color:#000;border:none;border-radius:var(--r);
+    font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-sans);transition:opacity .2s;}
+  .btn:hover{opacity:.88;}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .btn.secondary{background:var(--bg3);color:var(--text);border:1px solid var(--border2);}
+  .btn.danger{background:var(--red2);color:var(--red3);border:1px solid var(--red);}
+  .err{color:var(--red3);font-size:12px;margin-top:8px;}
+  .ok{color:var(--green);font-size:12px;margin-top:8px;}
+
+  /* ── APP SHELL ──────────────────────────────────────────────────── */
+  #app-page{display:none;}
+  .topbar{display:flex;align-items:center;padding:14px 24px;border-bottom:1px solid var(--border);
+    background:var(--bg1);position:sticky;top:0;z-index:100;}
+  .topbar-logo{font-family:var(--font-mono);font-weight:700;color:var(--green3);font-size:15px;
+    letter-spacing:-0.5px;display:flex;align-items:center;gap:8px;}
+  .topbar-logo::before{content:'▲';color:var(--green);font-size:13px;}
+  .topbar-user{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:12px;color:var(--text2);}
+  .topbar-user .pill{background:var(--bg3);border:1px solid var(--border2);border-radius:20px;
+    padding:4px 12px;font-size:11px;}
+  .signout{font-size:12px;cursor:pointer;color:var(--text3);transition:color .2s;}
+  .signout:hover{color:var(--red3);}
+  .main{max-width:1200px;margin:0 auto;padding:28px 24px;}
+
+  /* ── TABS ───────────────────────────────────────────────────────── */
+  .page-tabs{display:flex;gap:2px;margin-bottom:28px;border-bottom:1px solid var(--border);}
+  .page-tab{padding:10px 20px;cursor:pointer;font-size:13px;color:var(--text2);
+    border-bottom:2px solid transparent;transition:all .2s;margin-bottom:-1px;}
+  .page-tab.active{color:var(--green3);border-bottom-color:var(--green);}
+  .tab-pane{display:none;}
+  .tab-pane.active{display:block;}
+
+  /* ── KPI CARDS ──────────────────────────────────────────────────── */
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px;}
+  .kpi-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:18px;}
+  .kpi-label{font-size:11px;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px;}
+  .kpi-val{font-family:var(--font-mono);font-size:22px;font-weight:700;}
+  .kpi-val.pos{color:var(--green3);}
+  .kpi-val.neg{color:var(--red3);}
+  .kpi-val.neu{color:var(--text);}
+  .kpi-sub{font-size:11px;color:var(--text3);margin-top:4px;}
+
+  /* ── STRATEGY TABLE ─────────────────────────────────────────────── */
+  .section-title{font-size:11px;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;
+    margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+  .strat-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .strat-table th{text-align:left;padding:8px 12px;font-size:10px;color:var(--text3);
+    text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border);}
+  .strat-table td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text2);}
+  .strat-table tr:last-child td{border-bottom:none;}
+  .strat-table tr:hover td{background:var(--bg3);}
+  .mono{font-family:var(--font-mono);}
+  .pos{color:var(--green);}
+  .neg{color:var(--red3);}
+  .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;
+    font-weight:600;letter-spacing:.3px;}
+  .badge.live{background:var(--green2);color:var(--green3);border:1px solid var(--green);}
+  .badge.off{background:var(--bg3);color:var(--text3);border:1px solid var(--border2);}
+
+  /* ── CHART ──────────────────────────────────────────────────────── */
+  .chart-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);
+    padding:20px;margin-bottom:24px;}
+  .chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .chart-title{font-size:13px;font-weight:500;color:var(--text);}
+  .chart-days{display:flex;gap:4px;}
+  .day-btn{padding:4px 10px;font-size:11px;border-radius:4px;cursor:pointer;
+    background:var(--bg3);color:var(--text2);border:1px solid var(--border2);transition:all .2s;}
+  .day-btn.active{background:var(--green2);color:var(--green3);border-color:var(--green);}
+  canvas{max-height:260px;}
+
+  /* ── INTRADAY ───────────────────────────────────────────────────── */
+  .intraday-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:20px;}
+
+  /* ── SETTINGS ───────────────────────────────────────────────────── */
+  .settings-section{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);
+    padding:20px;margin-bottom:20px;}
+  .settings-title{font-size:13px;font-weight:500;margin-bottom:16px;color:var(--text);}
+  .strat-row{display:flex;align-items:center;gap:12px;padding:12px 0;
+    border-bottom:1px solid var(--border);}
+  .strat-row:last-child{border-bottom:none;}
+  .strat-name{flex:1;font-size:13px;}
+  .strat-email{font-size:11px;color:var(--text3);}
+  .icon-btn{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;
+    border-radius:6px;cursor:pointer;font-size:14px;border:1px solid var(--border2);background:var(--bg3);}
+  .icon-btn:hover{background:var(--red2);border-color:var(--red);color:var(--red3);}
+  .add-form{display:flex;flex-direction:column;gap:12px;}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border2);
+    border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .empty-state{text-align:center;padding:40px 20px;color:var(--text3);}
+  .empty-state .big{font-size:32px;margin-bottom:12px;}
+
+  /* ── PULSE INDICATOR ────────────────────────────────────────────── */
+  .live-dot{width:8px;height:8px;background:var(--green);border-radius:50%;
+    animation:pulse-dot 2s ease-in-out infinite;}
+  @keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.7)}}
+  .live-badge{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green3);}
+  .last-update{font-size:11px;color:var(--text3);}
+
+  @media(max-width:600px){
+    .main{padding:16px;}
+    .form-row{grid-template-columns:1fr;}
+    .kpi-grid{grid-template-columns:1fr 1fr;}
+    .topbar{padding:12px 16px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ AUTH PAGE ══════════════ -->
+<div id="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo">APEX ALGOS</div>
+    <div class="auth-sub">Strategy PNL Tracker — powered by Tradetron</div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchAuthTab('signin')">Sign In</div>
+      <div class="auth-tab" onclick="switchAuthTab('signup')">Create Account</div>
+    </div>
+
+    <!-- Sign In -->
+    <div id="form-signin">
+      <div class="field"><label>Email</label><input type="email" id="si-email" placeholder="you@example.com"/></div>
+      <div class="field"><label>Password</label><input type="password" id="si-pass" placeholder="••••••••"/></div>
+      <button class="btn" id="si-btn" onclick="doSignin()">Sign In</button>
+      <div id="si-err" class="err"></div>
+    </div>
+
+    <!-- Sign Up -->
+    <div id="form-signup" style="display:none">
+      <div class="field"><label>Name</label><input type="text" id="su-name" placeholder="Your name"/></div>
+      <div class="field"><label>Email</label><input type="email" id="su-email" placeholder="you@example.com"/></div>
+      <div class="field"><label>Password</label><input type="password" id="su-pass" placeholder="min 8 characters"/></div>
+      <button class="btn" id="su-btn" onclick="doSignup()">Create Account</button>
+      <div id="su-err" class="err"></div>
+      <div id="su-ok" class="ok"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ APP PAGE ══════════════ -->
+<div id="app-page">
+  <div class="topbar">
+    <div class="topbar-logo">APEX ALGOS</div>
+    <div class="topbar-user">
+      <div class="live-badge"><div class="live-dot"></div><span>Live</span></div>
+      <span class="last-update" id="last-update-label">–</span>
+      <span class="pill" id="user-email-label">–</span>
+      <span class="signout" onclick="doSignout()">Sign out</span>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="page-tabs">
+      <div class="page-tab active" onclick="showTab('dashboard')">Dashboard</div>
+      <div class="page-tab" onclick="showTab('history')">History</div>
+      <div class="page-tab" onclick="showTab('settings')">Strategies</div>
+    </div>
+
+    <!-- ── DASHBOARD TAB ── -->
+    <div class="tab-pane active" id="tab-dashboard">
+      <div class="kpi-grid" id="kpi-grid">
+        <div class="kpi-card"><div class="kpi-label">Today PNL</div><div class="kpi-val neu" id="kpi-pnl">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Day High</div><div class="kpi-val pos" id="kpi-high">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Day Low</div><div class="kpi-val neg" id="kpi-low">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Strategies</div><div class="kpi-val neu" id="kpi-count">—</div></div>
+      </div>
+
+      <div class="intraday-wrap" style="margin-bottom:24px;">
+        <div class="chart-header">
+          <span class="chart-title">Intraday PNL  ·  Today</span>
+          <span class="last-update" id="intraday-last">–</span>
+        </div>
+        <canvas id="intraday-chart" height="220"></canvas>
+      </div>
+
+      <div class="section-title">Strategy Breakdown</div>
+      <table class="strat-table" id="today-table">
+        <thead>
+          <tr>
+            <th>Strategy</th>
+            <th>Current PNL</th>
+            <th>Day High</th>
+            <th>Day Low</th>
+            <th>Peak Time</th>
+            <th>Ticks</th>
+          </tr>
+        </thead>
+        <tbody id="today-body">
+          <tr><td colspan="6" class="empty-state">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ── HISTORY TAB ── -->
+    <div class="tab-pane" id="tab-history">
+      <div class="chart-wrap">
+        <div class="chart-header">
+          <span class="chart-title">Portfolio PNL  ·  Daily</span>
+          <div class="chart-days">
+            <span class="day-btn active" onclick="loadChart(7,this)">7d</span>
+            <span class="day-btn" onclick="loadChart(14,this)">14d</span>
+            <span class="day-btn" onclick="loadChart(30,this)">30d</span>
+          </div>
+        </div>
+        <canvas id="history-chart" height="240"></canvas>
+      </div>
+
+      <div class="section-title">Daily History</div>
+      <table class="strat-table">
+        <thead>
+          <tr><th>Date</th><th>Strategy</th><th>Exit PNL</th><th>Day High</th><th>Day Low</th><th>Peak Time</th></tr>
+        </thead>
+        <tbody id="history-body">
+          <tr><td colspan="6" class="empty-state">Select History tab to load</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ── SETTINGS TAB ── -->
+    <div class="tab-pane" id="tab-settings">
+      <div class="settings-section">
+        <div class="settings-title">Your Strategies</div>
+        <div id="strat-list"><div class="empty-state"><div class="big">📊</div>No strategies yet</div></div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-title">Add Tradetron Account</div>
+        <div class="add-form">
+          <div class="form-row">
+            <div class="field" style="margin:0"><label>Display Name</label>
+              <input type="text" id="add-name" placeholder="e.g. My NAP Strategy"/></div>
+            <div class="field" style="margin:0"><label>Tradetron Email</label>
+              <input type="email" id="add-email" placeholder="your@tradetron.email"/></div>
+          </div>
+          <div class="form-row">
+            <div class="field" style="margin:0"><label>Tradetron Password</label>
+              <input type="password" id="add-pass" placeholder="••••••••"/></div>
+            <div class="field" style="margin:0"><label>Strategy SIDs <span style="color:var(--text3)">(optional, comma-sep)</span></label>
+              <input type="text" id="add-sids" placeholder="blank = track all strategies"/></div>
+          </div>
+          <button class="btn" style="width:auto;align-self:flex-start;padding:11px 28px;" id="add-btn" onclick="addStrategy()">
+            Add Strategy
+          </button>
+          <div id="add-err" class="err"></div>
+          <div id="add-ok" class="ok"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app-page -->
+
+<script>
+// ════════════════════════════════════════
+//  CONFIG — set your backend URL here
+// ════════════════════════════════════════
+const API = 'https://apexalgos.onrender.com';
+```
+
+Save it.
+
+---
+
+## Step 2 — Upload to your GitHub repo
+
+1. Go to your `apexalgosindia.github.io` repo on GitHub
+2. Click **Add file → Create new file**
+3. In the filename box type exactly: `PNL_bot_dashboard/index.html`
+4. GitHub will automatically create the folder
+5. Open your edited `index.html` in Notepad → **Select All → Copy**
+6. Paste into the GitHub editor
+7. Click **Commit changes**
+
+✅ Dashboard is now live at `apexalgosindia.github.io/PNL_bot_dashboard`
+
+---
+
+## Step 3 — Create backend repo on GitHub
+
+Your existing repo can't run Python — create a **separate repo** just for the backend:
+
+1. Go to github.com → **New repository** → name it `apexalgos-backend` → Public → Create
+2. Upload these files from your zip (drag & drop):
+   - The entire `backend/` folder
+   - The entire `frontend/` folder  
+   - `requirements.txt`
+3. Create a new file called `Procfile` (no extension) with this content:
+```
+web: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+
+
+// ── State ─────────────────────────────
+let token = localStorage.getItem('apex_token') || '';
+let intradayChart = null, historyChart = null;
+let refreshInterval = null;
+
+// ── Startup ───────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  if (token) { showApp(); loadDashboard(); }
+  else showAuth();
+  // Enter key on auth forms
+  ['si-pass','su-pass'].forEach(id => {
+    document.getElementById(id)?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') id.startsWith('si') ? doSignin() : doSignup();
+    });
+  });
+});
+
+// ── Auth helpers ──────────────────────
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) =>
+    t.classList.toggle('active', (i===0 && tab==='signin') || (i===1 && tab==='signup')));
+  document.getElementById('form-signin').style.display = tab==='signin'?'':'none';
+  document.getElementById('form-signup').style.display = tab==='signup'?'':'none';
+}
+
+async function doSignin() {
+  const email = document.getElementById('si-email').value.trim();
+  const pass  = document.getElementById('si-pass').value;
+  const btn   = document.getElementById('si-btn');
+  const err   = document.getElementById('si-err');
+  if (!email||!pass){err.textContent='Please fill all fields';return;}
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>  Signing in…';
+  err.textContent = '';
+  try {
+    const r = await api('POST','/api/auth/signin',{email,password:pass});
+    token = r.access_token;
+    localStorage.setItem('apex_token', token);
+    localStorage.setItem('apex_email', r.user.email);
+    showApp(); loadDashboard();
+  } catch(e) {
+    err.textContent = e.message || 'Sign in failed';
+  } finally { btn.disabled=false; btn.textContent='Sign In'; }
+}
+
+async function doSignup() {
+  const name  = document.getElementById('su-name').value.trim();
+  const email = document.getElementById('su-email').value.trim();
+  const pass  = document.getElementById('su-pass').value;
+  const btn   = document.getElementById('su-btn');
+  const err   = document.getElementById('su-err');
+  const ok    = document.getElementById('su-ok');
+  if (!email||!pass){err.textContent='Please fill all fields';return;}
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>  Creating account…';
+  err.textContent=''; ok.textContent='';
+  try {
+    await api('POST','/api/auth/signup',{email,password:pass,name});
+    ok.textContent = '✅ Account created — check your email to confirm, then sign in.';
+    switchAuthTab('signin');
+    document.getElementById('si-email').value = email;
+  } catch(e) { err.textContent = e.message || 'Sign up failed'; }
+  finally { btn.disabled=false; btn.textContent='Create Account'; }
+}
+
+function doSignout() {
+  token=''; localStorage.removeItem('apex_token'); localStorage.removeItem('apex_email');
+  clearInterval(refreshInterval);
+  showAuth();
+}
+
+// ── Page routing ──────────────────────
+function showAuth() {
+  document.getElementById('auth-page').style.display='flex';
+  document.getElementById('app-page').style.display='none';
+}
+function showApp() {
+  document.getElementById('auth-page').style.display='none';
+  document.getElementById('app-page').style.display='block';
+  document.getElementById('user-email-label').textContent =
+    localStorage.getItem('apex_email') || '';
+}
+function showTab(name) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if(name==='history') { loadHistory(); loadChart(7, document.querySelector('.day-btn')); }
+  if(name==='settings') loadStratList();
+}
+
+// ── API helper ────────────────────────
+async function api(method, path, body) {
+  const opts = { method, headers: {'Content-Type':'application/json'} };
+  if (token) opts.headers['Authorization'] = 'Bearer '+token;
+  if (body)  opts.body = JSON.stringify(body);
+  const r = await fetch(API+path, opts);
+  if (r.status === 401) { doSignout(); throw new Error('Session expired'); }
+  const data = await r.json().catch(()=>({}));
+  if (!r.ok) throw new Error(data.detail || data.message || 'Request failed');
+  return data;
+}
+
+function inr(v) {
+  if (v===null||v===undefined||isNaN(v)) return '—';
+  const a = Math.abs(v), s = v<0 ? '−' : '+';
+  if (a>=100000) return s+'₹'+(a/100000).toFixed(2)+'L';
+  if (a>=1000)   return s+'₹'+(a/1000).toFixed(1)+'K';
+  return s+'₹'+a.toFixed(0);
+}
+
+// ── Dashboard ─────────────────────────
+async function loadDashboard() {
+  try {
+    const d = await api('GET','/api/dashboard/today');
+    // KPIs
+    const pnlEl  = document.getElementById('kpi-pnl');
+    const highEl = document.getElementById('kpi-high');
+    const lowEl  = document.getElementById('kpi-low');
+    pnlEl.textContent  = inr(d.total_pnl);
+    highEl.textContent = inr(d.day_high);
+    lowEl.textContent  = inr(d.day_low);
+    document.getElementById('kpi-count').textContent = d.strategies.length;
+    pnlEl.className  = 'kpi-val '+(d.total_pnl>=0?'pos':'neg');
+    // Strategy table
+    const tbody = document.getElementById('today-body');
+    if (d.strategies.length===0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No data yet — check back during market hours</td></tr>';
+    } else {
+      tbody.innerHTML = d.strategies.map(s => `
+        <tr>
+          <td class="mono" style="color:var(--text)">${s.strategy_name}</td>
+          <td class="mono ${s.exit_pnl>=0?'pos':'neg'}">${inr(s.exit_pnl)}</td>
+          <td class="mono pos">${inr(s.high)}</td>
+          <td class="mono neg">${inr(s.low)}</td>
+          <td style="color:var(--text2)">${s.peak_time ? s.peak_time.slice(11,16) : '—'}</td>
+          <td style="color:var(--text3)">${s.tick_count||0}</td>
+        </tr>`).join('');
+    }
+    document.getElementById('last-update-label').textContent =
+      'Updated ' + new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  } catch(e) { console.warn('Dashboard load failed', e); }
+
+  // Load intraday chart
+  try {
+    const ticks = await api('GET','/api/dashboard/intraday');
+    renderIntradayChart(ticks);
+    document.getElementById('intraday-last').textContent = ticks.length+' ticks';
+  } catch(e) { console.warn('Intraday failed', e); }
+
+  // Auto-refresh every 60s
+  clearInterval(refreshInterval);
+  refreshInterval = setInterval(loadDashboard, 60000);
+}
+
+function renderIntradayChart(ticks) {
+  const labels = ticks.map(t => t.ts.slice(11,16));
+  const vals   = ticks.map(t => t.total);
+  const ctx    = document.getElementById('intraday-chart').getContext('2d');
+  if (intradayChart) intradayChart.destroy();
+  const pos = '#00d68f', neg = '#ff4d6d';
+  intradayChart = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels,
+      datasets:[{
+        label:'Portfolio PNL',
+        data: vals,
+        borderColor: vals.length && vals[vals.length-1]>=0 ? pos : neg,
+        backgroundColor: vals.length && vals[vals.length-1]>=0
+          ? 'rgba(0,214,143,0.06)' : 'rgba(255,77,109,0.06)',
+        borderWidth: 1.5,
+        pointRadius: 0,
+        fill: true,
+        tension: 0.3,
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{
+        backgroundColor:'#141920',borderColor:'#1e2a3a',borderWidth:1,
+        titleColor:'#8899aa',bodyColor:'#e2e8f0',
+        callbacks:{label: ctx => ' ₹'+ctx.raw.toLocaleString('en-IN')},
+      }},
+      scales:{
+        x:{grid:{color:'#1a2130'},ticks:{color:'#4a5a6a',maxTicksLimit:8,font:{size:10}}},
+        y:{grid:{color:'#1a2130'},ticks:{
+          color:'#4a5a6a',font:{size:10},
+          callback: v => v>=0?'+₹'+Math.abs(v).toLocaleString('en-IN'):'-₹'+Math.abs(v).toLocaleString('en-IN')
+        }},
+      }
+    }
+  });
+}
+
+// ── History ───────────────────────────
+async function loadHistory() {
+  try {
+    const rows = await api('GET','/api/dashboard/history?days=30');
+    const tbody = document.getElementById('history-body');
+    if (!rows.length) { tbody.innerHTML='<tr><td colspan="6" class="empty-state">No history yet</td></tr>'; return; }
+    tbody.innerHTML = rows.slice().reverse().map(r => `
+      <tr>
+        <td style="color:var(--text2)">${r.date}</td>
+        <td class="mono" style="color:var(--text)">${r.strategy_name}</td>
+        <td class="mono ${r.exit_pnl>=0?'pos':'neg'}">${inr(r.exit_pnl)}</td>
+        <td class="mono pos">${inr(r.high)}</td>
+        <td class="mono neg">${inr(r.low)}</td>
+        <td style="color:var(--text2)">${r.peak_time ? r.peak_time.slice(11,16) : '—'}</td>
+      </tr>`).join('');
+  } catch(e) { console.warn('History failed',e); }
+}
+
+async function loadChart(days, btn) {
+  document.querySelectorAll('.day-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  try {
+    const data = await api('GET',`/api/dashboard/chart?days=${days}`);
+    const ctx  = document.getElementById('history-chart').getContext('2d');
+    if(historyChart) historyChart.destroy();
+    historyChart = new Chart(ctx, {
+      type:'bar',
+      data:{
+        labels: data.map(d=>d.date.slice(5)),
+        datasets:[{
+          label:'Daily PNL',
+          data: data.map(d=>d.pnl),
+          backgroundColor: data.map(d => d.pnl>=0?'rgba(0,214,143,0.5)':'rgba(255,77,109,0.5)'),
+          borderColor:     data.map(d => d.pnl>=0?'#00d68f':'#ff4d6d'),
+          borderWidth:1, borderRadius:3,
+        }]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{
+          backgroundColor:'#141920',borderColor:'#1e2a3a',borderWidth:1,
+          titleColor:'#8899aa',bodyColor:'#e2e8f0',
+          callbacks:{label: ctx => ' ₹'+ctx.raw.toLocaleString('en-IN')},
+        }},
+        scales:{
+          x:{grid:{color:'#1a2130'},ticks:{color:'#4a5a6a',font:{size:10}}},
+          y:{grid:{color:'#1a2130'},ticks:{color:'#4a5a6a',font:{size:10},
+            callback: v => (v>=0?'+':'')+'₹'+Math.abs(v).toLocaleString('en-IN')}},
+        }
+      }
+    });
+  } catch(e) { console.warn('Chart failed',e); }
+}
+
+// ── Strategies ────────────────────────
+async function loadStratList() {
+  const el = document.getElementById('strat-list');
+  el.innerHTML = '<div class="empty-state"><span class="spinner"></span></div>';
+  try {
+    const strats = await api('GET','/api/strategies/');
+    if(!strats.length){
+      el.innerHTML='<div class="empty-state"><div class="big">📊</div>No strategies yet — add one below</div>';
+      return;
+    }
+    el.innerHTML = strats.map(s=>`
+      <div class="strat-row">
+        <div>
+          <div class="strat-name">${s.name}</div>
+          <div class="strat-email">${s.tt_email}${s.strategy_sids?' · SIDs: '+s.strategy_sids:''}</div>
+        </div>
+        <span class="badge ${s.is_active?'live':'off'}">${s.is_active?'● ACTIVE':'○ PAUSED'}</span>
+        <div class="icon-btn" onclick="toggleStrat('${s.id}')">⏯</div>
+        <div class="icon-btn" onclick="deleteStrat('${s.id}')">✕</div>
+      </div>`).join('');
+  } catch(e) { el.innerHTML='<div class="err">Failed to load</div>'; }
+}
+
+async function addStrategy() {
+  const name  = document.getElementById('add-name').value.trim();
+  const email = document.getElementById('add-email').value.trim();
+  const pass  = document.getElementById('add-pass').value;
+  const sids  = document.getElementById('add-sids').value.trim();
+  const btn   = document.getElementById('add-btn');
+  const err   = document.getElementById('add-err');
+  const ok    = document.getElementById('add-ok');
+  if(!name||!email||!pass){err.textContent='Name, email and password are required';return;}
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>  Adding…';
+  err.textContent=''; ok.textContent='';
+  try {
+    const r = await api('POST','/api/strategies/',
+      {name, tt_email:email, tt_password:pass, strategy_sids:sids});
+    ok.textContent='✅ '+r.message;
+    document.getElementById('add-name').value = '';
+    document.getElementById('add-email').value = '';
+    document.getElementById('add-pass').value  = '';
+    document.getElementById('add-sids').value  = '';
+    loadStratList();
+  } catch(e) { err.textContent = e.message; }
+  finally { btn.disabled=false; btn.textContent='Add Strategy'; }
+}
+
+async function toggleStrat(id) {
+  try { await api('PATCH',`/api/strategies/${id}/toggle`); loadStratList(); }
+  catch(e) { alert('Failed: '+e.message); }
+}
+async function deleteStrat(id) {
+  if(!confirm('Delete this strategy? Historical data is kept.')) return;
+  try { await api('DELETE',`/api/strategies/${id}`); loadStratList(); }
+  catch(e) { alert('Failed: '+e.message); }
+}
+</script>
+</body>
+</html>
