@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Apex Algos · PNL Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg0:#0a0d12;--bg1:#0f1318;--bg2:#141920;--bg3:#1a2130;
+  --border:#1e2a3a;--border2:#253040;
+  --text:#e2e8f0;--text2:#8899aa;--text3:#4a5a6a;
+  --green:#00d68f;--green2:#003d28;--green3:#00ff9d;
+  --red:#ff4d6d;--red2:#3d0012;--red3:#ff8099;
+  --amber:#f59e0b;--amber2:#2d1a00;
+  --blue:#3b82f6;--blue2:#0d1f40;
+  --font-mono:'JetBrains Mono',monospace;
+  --font:'DM Sans',sans-serif;
+  --r:8px;--r2:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg0);color:var(--text);font-family:var(--font);min-height:100vh;font-size:14px;}
+/* AUTH */
+#auth-page{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;
+  background:radial-gradient(ellipse at 20% 50%,#0d2030 0%,transparent 60%),
+             radial-gradient(ellipse at 80% 20%,#0d2a1a 0%,transparent 50%),var(--bg0);}
+.auth-card{width:100%;max-width:400px;}
+.auth-logo{font-family:var(--font-mono);font-size:22px;font-weight:700;color:var(--green3);
+  margin-bottom:6px;display:flex;align-items:center;gap:10px;}
+.auth-logo::before{content:'▲';color:var(--green);font-size:16px;}
+.auth-sub{color:var(--text2);font-size:13px;margin-bottom:28px;}
+.auth-tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--bg2);padding:4px;border-radius:var(--r);}
+.auth-tab{flex:1;padding:8px;text-align:center;cursor:pointer;border-radius:6px;font-size:13px;color:var(--text2);transition:all .2s;}
+.auth-tab.active{background:var(--bg3);color:var(--text);font-weight:500;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:11px;color:var(--text2);margin-bottom:5px;letter-spacing:.5px;text-transform:uppercase;}
+.field input,.field select{width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);
+  padding:10px 13px;color:var(--text);font-size:14px;font-family:var(--font);outline:none;transition:border .2s;}
+.field input:focus,.field select:focus{border-color:var(--green);}
+.field select option{background:var(--bg2);}
+.btn{width:100%;padding:11px;background:var(--green);color:#000;border:none;border-radius:var(--r);
+  font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);transition:opacity .2s;}
+.btn:hover{opacity:.88;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn.sec{background:var(--bg3);color:var(--text);border:1px solid var(--border2);}
+.btn.sm{width:auto;padding:8px 18px;font-size:13px;}
+.err{color:var(--red3);font-size:12px;margin-top:6px;}
+.ok{color:var(--green);font-size:12px;margin-top:6px;}
+/* APP */
+#app-page{display:none;}
+.topbar{display:flex;align-items:center;padding:13px 24px;border-bottom:1px solid var(--border);
+  background:var(--bg1);position:sticky;top:0;z-index:100;gap:12px;}
+.topbar-logo{font-family:var(--font-mono);font-weight:700;color:var(--green3);font-size:15px;display:flex;align-items:center;gap:8px;}
+.topbar-logo::before{content:'▲';color:var(--green);font-size:12px;}
+.live-dot{width:7px;height:7px;background:var(--green);border-radius:50%;animation:pdot 2s ease-in-out infinite;}
+@keyframes pdot{0%,100%{opacity:1}50%{opacity:.4}}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text2);}
+.pill{background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:3px 10px;font-size:11px;}
+.signout{font-size:12px;cursor:pointer;color:var(--text3);transition:color .2s;}
+.signout:hover{color:var(--red3);}
+.main{max-width:1200px;margin:0 auto;padding:24px 20px;}
+/* TABS */
+.page-tabs{display:flex;gap:2px;margin-bottom:24px;border-bottom:1px solid var(--border);}
+.page-tab{padding:9px 18px;cursor:pointer;font-size:13px;color:var(--text2);
+  border-bottom:2px solid transparent;transition:all .2s;margin-bottom:-1px;}
+.page-tab.active{color:var(--green3);border-bottom-color:var(--green);}
+.tab-pane{display:none;}
+.tab-pane.active{display:block;}
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:20px;}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:16px;}
+.kpi-label{font-size:10px;color:var(--text3);letter-spacing:.7px;text-transform:uppercase;margin-bottom:6px;}
+.kpi-val{font-family:var(--font-mono);font-size:20px;font-weight:700;}
+.kpi-val.pos{color:var(--green3);}
+.kpi-val.neg{color:var(--red3);}
+.kpi-val.neu{color:var(--text);}
+.kpi-sub{font-size:10px;color:var(--text3);margin-top:3px;}
+/* TABLES */
+.sec-title{font-size:10px;color:var(--text3);letter-spacing:.7px;text-transform:uppercase;
+  margin-bottom:10px;padding-bottom:7px;border-bottom:1px solid var(--border);}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;padding:7px 10px;font-size:10px;color:var(--text3);text-transform:uppercase;
+  letter-spacing:.5px;border-bottom:1px solid var(--border);}
+td{padding:9px 10px;border-bottom:1px solid var(--border);color:var(--text2);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--bg3);}
+.mono{font-family:var(--font-mono);}
+.pos{color:var(--green);}
+.neg{color:var(--red3);}
+/* CHARTS */
+.chart-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:18px;margin-bottom:20px;}
+.chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.chart-title{font-size:13px;font-weight:500;}
+.day-btns{display:flex;gap:4px;}
+.dbt{padding:4px 9px;font-size:11px;border-radius:4px;cursor:pointer;
+  background:var(--bg3);color:var(--text2);border:1px solid var(--border2);transition:all .2s;}
+.dbt.active{background:var(--green2);color:var(--green3);border-color:var(--green);}
+canvas{max-height:240px;}
+/* SETTINGS */
+.settings-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:18px;margin-bottom:16px;}
+.settings-title{font-size:13px;font-weight:500;margin-bottom:14px;}
+.strat-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.strat-item:last-child{border-bottom:none;}
+.strat-info{flex:1;}
+.strat-name2{font-size:13px;color:var(--text);}
+.strat-meta{font-size:11px;color:var(--text3);margin-top:2px;}
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600;}
+.badge.live{background:var(--green2);color:var(--green3);border:1px solid var(--green);}
+.badge.off{background:var(--bg3);color:var(--text3);border:1px solid var(--border2);}
+.icon-btn{width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;
+  border-radius:6px;cursor:pointer;font-size:13px;border:1px solid var(--border2);background:var(--bg3);}
+.icon-btn:hover{background:var(--red2);border-color:var(--red);color:var(--red3);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.spinner{display:inline-block;width:13px;height:13px;border:2px solid var(--border2);
+  border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:32px;color:var(--text3);}
+/* PORTFOLIO ROW */
+.port-row{background:var(--bg3);border-bottom:1px solid var(--border2);}
+.port-row td{color:var(--text);font-weight:600;}
+@media(max-width:600px){.main{padding:14px;}.form-row{grid-template-columns:1fr;}.kpi-grid{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo">APEX ALGOS</div>
+    <div class="auth-sub">Strategy PNL Tracker</div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="authTab('signin')">Sign In</div>
+      <div class="auth-tab" onclick="authTab('signup')">Create Account</div>
+    </div>
+    <div id="form-signin">
+      <div class="field"><label>Email</label><input type="email" id="si-email" placeholder="you@example.com"/></div>
+      <div class="field"><label>Password</label><input type="password" id="si-pass" placeholder="••••••••"/></div>
+      <button class="btn" id="si-btn" onclick="doSignin()">Sign In</button>
+      <div id="si-err" class="err"></div>
+    </div>
+    <div id="form-signup" style="display:none">
+      <div class="field"><label>Name</label><input type="text" id="su-name" placeholder="Your name"/></div>
+      <div class="field"><label>Email</label><input type="email" id="su-email" placeholder="you@example.com"/></div>
+      <div class="field"><label>Password</label><input type="password" id="su-pass" placeholder="min 8 characters"/></div>
+      <button class="btn" id="su-btn" onclick="doSignup()">Create Account</button>
+      <div id="su-err" class="err"></div>
+      <div id="su-ok" class="ok"></div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-page">
+  <div class="topbar">
+    <div class="topbar-logo">APEX ALGOS</div>
+    <div class="live-dot"></div>
+    <span style="font-size:11px;color:var(--green3)">Live</span>
+    <div class="topbar-right">
+      <span id="last-upd" style="font-size:11px;color:var(--text3)"></span>
+      <span class="pill" id="user-lbl"></span>
+      <span class="signout" onclick="doSignout()">Sign out</span>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="page-tabs">
+      <div class="page-tab active" onclick="showTab('dashboard',this)">Dashboard</div>
+      <div class="page-tab" onclick="showTab('history',this)">History</div>
+      <div class="page-tab" onclick="showTab('settings',this)">Strategies</div>
+      <div class="page-tab" onclick="showTab('telegram',this)">Telegram Bot</div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="tab-pane active" id="tab-dashboard">
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-label">Portfolio PNL</div><div class="kpi-val neu" id="k-pnl">—</div><div class="kpi-sub">Today</div></div>
+        <div class="kpi"><div class="kpi-label">Day High</div><div class="kpi-val pos" id="k-high">—</div><div class="kpi-sub">Combined</div></div>
+        <div class="kpi"><div class="kpi-label">Day Low</div><div class="kpi-val neg" id="k-low">—</div><div class="kpi-sub">Combined</div></div>
+        <div class="kpi"><div class="kpi-label">Strategies</div><div class="kpi-val neu" id="k-count">—</div><div class="kpi-sub">Active</div></div>
+      </div>
+
+      <div class="chart-wrap">
+        <div class="chart-header">
+          <span class="chart-title">Intraday PNL · Today</span>
+          <span id="tick-count" style="font-size:11px;color:var(--text3)"></span>
+        </div>
+        <canvas id="intraday-chart"></canvas>
+      </div>
+
+      <div class="sec-title">Strategy Breakdown</div>
+      <table>
+        <thead><tr>
+          <th>Strategy</th><th>Current PNL</th><th>Day High</th><th>Day Low</th><th>Peak Time</th><th>Ticks</th>
+        </tr></thead>
+        <tbody id="today-body"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
+      </table>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="tab-pane" id="tab-history">
+      <div class="chart-wrap">
+        <div class="chart-header">
+          <span class="chart-title">Portfolio PNL · Daily</span>
+          <div class="day-btns">
+            <span class="dbt active" onclick="loadChart(7,this)">7d</span>
+            <span class="dbt" onclick="loadChart(14,this)">14d</span>
+            <span class="dbt" onclick="loadChart(30,this)">30d</span>
+          </div>
+        </div>
+        <canvas id="history-chart"></canvas>
+      </div>
+      <div class="sec-title">Daily History</div>
+      <table>
+        <thead><tr><th>Date</th><th>Strategy</th><th>PNL</th><th>High</th><th>Low</th><th>Peak</th></tr></thead>
+        <tbody id="history-body"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
+      </table>
+    </div>
+
+    <!-- STRATEGIES -->
+    <div class="tab-pane" id="tab-settings">
+      <div class="settings-box">
+        <div class="settings-title">Your Strategies</div>
+        <div id="strat-list"><div class="empty">No strategies yet</div></div>
+      </div>
+      <div class="settings-box">
+        <div class="settings-title">Add Strategy via Shared Code</div>
+        <p style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">
+          Share your Tradetron strategy with the master account, then enter the shared code below.
+          We'll automatically track it and show live PNL on your dashboard.
+        </p>
+        <div class="form-row" style="margin-bottom:12px">
+          <div class="field" style="margin:0"><label>Display Name</label>
+            <input type="text" id="add-name" placeholder="e.g. NAP Strategy"/></div>
+          <div class="field" style="margin:0"><label>Tradetron Shared Code</label>
+            <input type="text" id="add-code" placeholder="e.g. ABC123XYZ"/></div>
+        </div>
+        <button class="btn sm" id="add-btn" onclick="addStrategy()">Add Strategy</button>
+        <div id="add-err" class="err"></div>
+        <div id="add-ok" class="ok"></div>
+      </div>
+    </div>
+
+    <!-- TELEGRAM -->
+    <div class="tab-pane" id="tab-telegram">
+      <div class="settings-box">
+        <div class="settings-title">Telegram Bot Setup</div>
+        <p style="font-size:12px;color:var(--text3);margin-bottom:16px;line-height:1.7">
+          Get end-of-day PNL summaries on Telegram.<br>
+          <b style="color:var(--text2)">Step 1:</b> Message <a href="https://t.me/BotFather" target="_blank">@BotFather</a> on Telegram → /newbot → copy the token<br>
+          <b style="color:var(--text2)">Step 2:</b> Message <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a> → copy your Chat ID<br>
+          <b style="color:var(--text2)">Step 3:</b> Paste both below and click Save
+        </p>
+        <div class="form-row" style="margin-bottom:12px">
+          <div class="field" style="margin:0"><label>Bot Token</label>
+            <input type="text" id="tg-token" placeholder="1234567890:AAExxxxxx"/></div>
+          <div class="field" style="margin:0"><label>Chat ID</label>
+            <input type="text" id="tg-chatid" placeholder="123456789"/></div>
+        </div>
+        <div class="field" style="margin-bottom:14px">
+          <label>End of Day Summary (15:35 IST)</label>
+          <select id="tg-eod">
+            <option value="true">Enabled</option>
+            <option value="false">Disabled</option>
+          </select>
+        </div>
+        <button class="btn sm" id="tg-btn" onclick="saveTelegram()">Save &amp; Test</button>
+        <div id="tg-err" class="err"></div>
+        <div id="tg-ok" class="ok"></div>
+      </div>
+      <div class="settings-box" id="tg-current" style="display:none">
+        <div class="settings-title">Current Config</div>
+        <div id="tg-current-body" style="font-size:13px;color:var(--text2);line-height:1.8"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const API = 'https://apexalgos-backend.onrender.com';
+let token = localStorage.getItem('apex_token')||'';
+let iChart=null, hChart=null, refreshT=null;
+
+window.addEventListener('DOMContentLoaded',()=>{
+  if(token){showApp();loadDashboard();}else showAuth();
+  document.getElementById('si-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doSignin();});
+  document.getElementById('su-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doSignup();});
+});
+
+function authTab(t){
+  document.querySelectorAll('.auth-tab').forEach((el,i)=>el.classList.toggle('active',(i===0&&t==='signin')||(i===1&&t==='signup')));
+  document.getElementById('form-signin').style.display=t==='signin'?'':'none';
+  document.getElementById('form-signup').style.display=t==='signup'?'':'none';
+}
+
+async function doSignin(){
+  const email=v('si-email'),pass=v('si-pass'),btn=el('si-btn'),err=el('si-err');
+  if(!email||!pass){err.textContent='Fill all fields';return;}
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Signing in…';err.textContent='';
+  try{
+    const r=await api('POST','/api/auth/signin',{email,password:pass});
+    token=r.access_token;
+    localStorage.setItem('apex_token',token);localStorage.setItem('apex_email',r.user.email);
+    showApp();loadDashboard();
+  }catch(e){err.textContent=e.message||'Sign in failed';}
+  finally{btn.disabled=false;btn.textContent='Sign In';}
+}
+
+async function doSignup(){
+  const name=v('su-name'),email=v('su-email'),pass=v('su-pass');
+  const btn=el('su-btn'),err=el('su-err'),ok=el('su-ok');
+  if(!email||!pass){err.textContent='Fill all fields';return;}
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Creating…';err.textContent='';ok.textContent='';
+  try{
+    await api('POST','/api/auth/signup',{email,password:pass,name});
+    ok.textContent='✅ Account created — check email to confirm, then sign in.';
+    authTab('signin');el('si-email').value=email;
+  }catch(e){err.textContent=e.message||'Sign up failed';}
+  finally{btn.disabled=false;btn.textContent='Create Account';}
+}
+
+function doSignout(){
+  token='';localStorage.removeItem('apex_token');localStorage.removeItem('apex_email');
+  clearInterval(refreshT);showAuth();
+}
+function showAuth(){el('auth-page').style.display='flex';el('app-page').style.display='none';}
+function showApp(){
+  el('auth-page').style.display='none';el('app-page').style.display='block';
+  el('user-lbl').textContent=localStorage.getItem('apex_email')||'';
+}
+function showTab(name,tab){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.page-tab').forEach(t=>t.classList.remove('active'));
+  el('tab-'+name).classList.add('active');
+  if(tab)tab.classList.add('active');
+  if(name==='history'){loadHistory();loadChart(7,document.querySelector('.dbt'));}
+  if(name==='settings')loadStratList();
+  if(name==='telegram')loadTelegram();
+}
+
+async function api(method,path,body){
+  const opts={method,headers:{'Content-Type':'application/json'}};
+  if(token)opts.headers['Authorization']='Bearer '+token;
+  if(body)opts.body=JSON.stringify(body);
+  const r=await fetch(API+path,opts);
+  if(r.status===401){doSignout();throw new Error('Session expired');}
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.detail||d.message||'Error');
+  return d;
+}
+
+function inr(v){
+  if(v===null||v===undefined||isNaN(v))return'—';
+  const a=Math.abs(v),s=v<0?'−':'+';
+  if(a>=100000)return s+'₹'+(a/100000).toFixed(2)+'L';
+  if(a>=1000)return s+'₹'+(a/1000).toFixed(1)+'K';
+  return s+'₹'+a.toFixed(0);
+}
+function el(id){return document.getElementById(id);}
+function v(id){return el(id).value.trim();}
+
+async function loadDashboard(){
+  try{
+    const d=await api('GET','/api/dashboard/today');
+    if(d.no_strategies){
+      el('today-body').innerHTML='<tr><td colspan="6" class="empty">No strategies added yet — go to Strategies tab to add one</td></tr>';
+      el('k-pnl').textContent=el('k-high').textContent=el('k-low').textContent='—';
+      el('k-count').textContent='0';
+    }else{
+      const pnlEl=el('k-pnl');
+      pnlEl.textContent=inr(d.total_pnl);
+      pnlEl.className='kpi-val '+(d.total_pnl>=0?'pos':'neg');
+      el('k-high').textContent=inr(d.total_high);
+      el('k-low').textContent=inr(d.total_low);
+      el('k-count').textContent=d.strategies.length;
+
+      const rows=d.strategies;
+      // Combined row + individual rows
+      let html=`<tr class="port-row">
+        <td class="mono">◈ Portfolio</td>
+        <td class="mono ${d.total_pnl>=0?'pos':'neg'}">${inr(d.total_pnl)}</td>
+        <td class="mono pos">${inr(d.total_high)}</td>
+        <td class="mono neg">${inr(d.total_low)}</td>
+        <td>—</td><td>—</td></tr>`;
+      rows.forEach(s=>{
+        const pt=(s.peak_time||'').length>=16?s.peak_time.slice(11,16):'—';
+        html+=`<tr>
+          <td class="mono" style="color:var(--text);padding-left:20px">  ${s.strat_name}</td>
+          <td class="mono ${s.exit_pnl>=0?'pos':'neg'}">${inr(s.exit_pnl)}</td>
+          <td class="mono pos">${inr(s.high)}</td>
+          <td class="mono neg">${inr(s.low)}</td>
+          <td style="color:var(--text2)">${pt}</td>
+          <td style="color:var(--text3)">${s.tick_count||0}</td></tr>`;
+      });
+      el('today-body').innerHTML=html;
+    }
+    el('last-upd').textContent='Updated '+new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  }catch(e){console.warn('Dashboard fail',e);}
+
+  try{
+    const ticks=await api('GET','/api/dashboard/intraday');
+    renderIntraday(ticks);
+    el('tick-count').textContent=ticks.length+' ticks';
+  }catch(e){}
+
+  clearInterval(refreshT);
+  refreshT=setInterval(loadDashboard,60000);
+}
+
+function renderIntraday(ticks){
+  const labels=ticks.map(t=>t.ts.slice(11,16));
+  const vals=ticks.map(t=>t.total);
+  const ctx=el('intraday-chart').getContext('2d');
+  if(iChart)iChart.destroy();
+  const col=vals.length&&vals[vals.length-1]>=0?'#00d68f':'#ff4d6d';
+  iChart=new Chart(ctx,{type:'line',data:{labels,datasets:[{
+    data:vals,borderColor:col,
+    backgroundColor:vals.length&&vals[vals.length-1]>=0?'rgba(0,214,143,0.06)':'rgba(255,77,109,0.06)',
+    borderWidth:1.5,pointRadius:0,fill:true,tension:0.3
+  }]},options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'#141920',borderColor:'#1e2a3a',borderWidth:1,
+      titleColor:'#8899aa',bodyColor:'#e2e8f0',callbacks:{label:c=>' ₹'+c.raw.toLocaleString('en-IN')}}},
+    scales:{x:{grid:{color:'#1a2130'},ticks:{color:'#4a5a6a',maxTicksLimit:8,font:{size:10}}},
+      y:{grid:{color:'#1a2130'},ticks:{color:'#4a5a6a',font:{size:10},
+        callback:v=>v>=0?'+₹'+Math.abs(v).toLocaleString('en-IN'):'-₹'+Math.abs(v).toLocaleString('en-IN')}}}}
+  });
+}
+
+async function loadHistory(){
+  try{
+    const rows=await api('GET','/api/dashboard/history?days=30');
+    if(!rows.length){el('history-body').innerHTML='<tr><td colspan="6" class="empty">No history yet</td></tr>';return;}
+    el('history-body').innerHTML=rows.slice().reverse().map(r=>{
+      const pt=(r.peak_time||'').length>=16?r.peak_time.slice(11,16):'—';
+      return`<tr>
+        <td style="color:var(--text2)">${r.date}</td>
+        <td class="mono" style="color:var(--text)">${r.strat_name}</td>
+        <td class="mono ${r.exit_pnl>=0?'pos':'neg'}">${inr(r.exit_pnl)}</td>
+        <td class="mono pos">${inr(r.high)}</td>
+        <td class="mono neg">${inr(r.low)}</td>
+        <td style="color:var(--text2)">${pt}</td></tr>`;
+    }).join('');
+  }catch(e){}
+}
+
+async function loadChart(days,btn){
+  document.querySelectorAll('.dbt').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  try{
+    const data=await api('GET',`/api/dashboard/chart?days=${days}`);
+    const ctx=el('history-chart').getContext('2d');
+    if(hChart)hChart.destroy();
+    hChart=new Chart(ctx,{type:'bar',data:{
+      labels:data.map(d=>d.date.slice(5)),
+      datasets:[{data:data.map(d=>d.pnl),
+        backgroundColor:data.map(d=>d.pnl>=0?'rgba(0,214,143,0.5)':'rgba(255,77,109,0.5)'),
+        borderColor:data.map(d=>d.pnl>=0?'#00d68f':'#ff4d6d'),borderWidth:1,borderRadius:3}]
+    },options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#141920',borderColor:'#1e2a3a',borderWidth:1,
+        titleColor:'#8899aa',bodyColor:'#e2e8f0',callbacks:{label:c=>' ₹'+c.raw.toLocaleString('en-IN')}}},
+      scales:{x:{grid:{color:'#1a2130'},ticks:{color:'#4a5a6a',font:{size:10}}},
+        y:{grid:{color:'#1a2130'},ticks:{color:'#4a5a6a',font:{size:10},
+          callback:v=>(v>=0?'+':'')+'₹'+Math.abs(v).toLocaleString('en-IN')}}}}
+    });
+  }catch(e){}
+}
+
+async function loadStratList(){
+  const lst=el('strat-list');
+  lst.innerHTML='<div class="empty"><span class="spinner"></span></div>';
+  try{
+    const strats=await api('GET','/api/strategies/');
+    if(!strats.length){lst.innerHTML='<div class="empty">No strategies yet — add one below</div>';return;}
+    lst.innerHTML=strats.map(s=>`
+      <div class="strat-item">
+        <div class="strat-info">
+          <div class="strat-name2">${s.name}</div>
+          <div class="strat-meta">Code: ${s.shared_code}${s.sid?' · SID: '+s.sid:' · SID: mapping…'}</div>
+        </div>
+        <span class="badge ${s.is_active?'live':'off'}">${s.is_active?'● ACTIVE':'○ PAUSED'}</span>
+        <div class="icon-btn" title="Toggle" onclick="toggleStrat('${s.id}')">⏯</div>
+        <div class="icon-btn" title="Delete" onclick="deleteStrat('${s.id}')">✕</div>
+      </div>`).join('');
+  }catch(e){lst.innerHTML='<div class="err">Failed to load</div>';}
+}
+
+async function addStrategy(){
+  const name=v('add-name'),code=v('add-code');
+  const btn=el('add-btn'),err=el('add-err'),ok=el('add-ok');
+  if(!name||!code){err.textContent='Name and shared code required';return;}
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Adding…';
+  err.textContent='';ok.textContent='';
+  try{
+    const r=await api('POST','/api/strategies/',{name,shared_code:code});
+    ok.textContent='✅ '+r.message;
+    el('add-name').value='';el('add-code').value='';
+    loadStratList();
+  }catch(e){err.textContent=e.message;}
+  finally{btn.disabled=false;btn.textContent='Add Strategy';}
+}
+
+async function toggleStrat(id){
+  try{await api('PATCH',`/api/strategies/${id}/toggle`);loadStratList();}
+  catch(e){alert('Failed: '+e.message);}
+}
+async function deleteStrat(id){
+  if(!confirm('Delete this strategy? Historical data is kept.'))return;
+  try{await api('DELETE',`/api/strategies/${id}`);loadStratList();}
+  catch(e){alert('Failed: '+e.message);}
+}
+
+async function loadTelegram(){
+  try{
+    const s=await api('GET','/api/strategies/settings');
+    if(s.telegram_chat_id){
+      el('tg-chatid').value=s.telegram_chat_id;
+      el('tg-eod').value=s.alert_eod?'true':'false';
+      el('tg-current').style.display='block';
+      el('tg-current-body').innerHTML=
+        `Bot Token: <span style="color:var(--text)">${s.telegram_bot_token_masked||'set'}</span><br>`+
+        `Chat ID: <span style="color:var(--text)">${s.telegram_chat_id}</span><br>`+
+        `EOD Alert: <span style="color:var(--green3)">${s.alert_eod?'Enabled':'Disabled'}</span>`;
+    }
+  }catch(e){}
+}
+
+async function saveTelegram(){
+  const tok=v('tg-token'),cid=v('tg-chatid'),eod=el('tg-eod').value==='true';
+  const btn=el('tg-btn'),err=el('tg-err'),ok=el('tg-ok');
+  if(!cid){err.textContent='Chat ID is required';return;}
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Saving…';
+  err.textContent='';ok.textContent='';
+  try{
+    const r=await api('POST','/api/strategies/settings',
+      {telegram_bot_token:tok,telegram_chat_id:cid,alert_eod:eod});
+    ok.textContent='✅ '+r.message;
+    loadTelegram();
+  }catch(e){err.textContent=e.message;}
+  finally{btn.disabled=false;btn.textContent='Save & Test';}
+}
+</script>
+</body>
+</html>
